@@ -64,12 +64,11 @@ function toolbox_docker_exec() {
   fi
 
   if [ "${TOOLBOX_DOCKER_SKIP}" == "true" ]; then
-    # set -a
-    # source kubectl.env
-    # set +a
     toolbox_exec "$@"
   else
-    TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE="--env-file ${TOOLBOX_TOOL_NAME}.env"
+    if [[ -f "${TOOLBOX_TOOL_NAME}.env" ]]; then
+      TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE="--env-file ${TOOLBOX_TOOL_NAME}.env"
+    fi
     _toolbox_docker_run "$@"
   fi
 
