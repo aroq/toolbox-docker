@@ -14,9 +14,9 @@
 export {{ $k }}=${ {{- $k }}:-{{ $v }}}
 {{- end -}}
 {{- end }}
-export TOOLBOX_DOCKER_IMAGE=${TOOLBOX_DOCKER_IMAGE:-{{ .task.image }}}
 export TOOLBOX_DOCKER_ENV_VARS="-e {{ $s := coll.Keys .task.env }}{{ join $s " -e " }}"
 {{ end }}
+export TOOLBOX_DOCKER_IMAGE=${TOOLBOX_DOCKER_IMAGE:-{{ .task.image }}}
 export TOOLBOX_TOOL_NAME="{{ (ds "task_name" ).name }}"
 
 toolbox_docker_exec "$@"
