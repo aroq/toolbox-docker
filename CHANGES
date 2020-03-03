@@ -1,0 +1,10 @@
+Version 0.1.0
+ - Refacto code
+ - Update run.tpl
+ - Update run.tpl
+ - Update run.tpl
+ - Add templates
+ - Update docker env file handling
+ - Add MIT license
+ - Initial commit
+
