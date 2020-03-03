@@ -3,11 +3,9 @@
 # shellcheck disable=SC2206
 
 # Default varable values
-export TOOLBOX_LOG_LEVEL=${TOOLBOX_LOG_LEVEL:-INFO}
-export TOOLBOX_DOCKER_SKIP=${TOOLBOX_DOCKER_SKIP:-false}
 
-function _toolbox_docker_run {
-  _log TRACE "Start '_toolbox_docker_run' function"
+function toolbox_docker_run {
+  _log TRACE "Start 'toolbox_docker_run' function"
   local _arguments="$*"
 
   TOOLBOX_DOCKER_EXECUTABLE=${TOOLBOX_DOCKER_EXECUTABLE:-docker}
@@ -18,10 +16,9 @@ function _toolbox_docker_run {
   TOOLBOX_DOCKER_VOLUME_SOURCE=${TOOLBOX_VOLUME_SOURCE:-$(pwd)}
   TOOLBOX_DOCKER_VOLUME_TARGET=${TOOLBOX_DOCKER_VOLUME_TARGET:-${TOOLBOX_DOCKER_VOLUME_SOURCE}}
   TOOLBOX_DOCKER_SSH_FORWARD=${TOOLBOX_DOCKER_SSH_FORWARD:-false}
-  TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE=${TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE:-}
   TOOLBOX_DOCKER_ENTRYPOINT=${TOOLBOX_DOCKER_ENTRYPOINT:-}
   TOOLBOX_DOCKER_ENV_VARS=${TOOLBOX_DOCKER_ENV_VARS:-}
-
+  TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE=${TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE:-}
 
   # Only allocate tty if one is detected. See - https://stackoverflow.com/questions/911168
   TOOLBOX_DOCKER_RUN_FLAGS+=(--rm)
@@ -53,24 +50,34 @@ function _toolbox_docker_run {
 }
 
 function toolbox_docker_exec() {
-  _log TRACE "Start '_exec_image' function"
-  TOOLBOX_RUN=${TOOLBOX_RUN:-false}
-  # Decide about Docker mode
-  if [ "${TOOLBOX_RUN}" == "false" ] && [ "${TOOLBOX_DOCKER_SKIP}" == "false" ]; then
-    if [ -f /.dockerenv ]; then
-      echo "Inside docker already, setting TOOLBOX_DOCKER_SKIP to true"
-      TOOLBOX_DOCKER_SKIP=true
-    fi
-  fi
+  _log TRACE "Start 'toolbox_docker_exec' function"
+  TOOLBOX_DOCKER_SKIP=${TOOLBOX_DOCKER_SKIP:-false}
 
   if [ "${TOOLBOX_DOCKER_SKIP}" == "true" ]; then
     toolbox_exec "$@"
   else
+    # Provide TOOLBOX_* environment variables file
+    local toolbox_env_file
+    toolbox_env_file="$(mktemp)"
+
+    local _prefix=$(printf '%s\n' "$TOOLBOX_TOOL_NAME" | awk '{ print toupper($0) }')
+
+    (env | grep "^${_prefix}_") >> "${toolbox_env_file}" || true
+    _log DEBUG "${YELLOW}'${_prefix}_*' variable list - ${toolbox_env_file}:${RESTORE}"
+    _log DEBUG "${LYELLOW}$(cat "${toolbox_env_file}")${RESTORE}"
+    _log DEBUG "${YELLOW}---${RESTORE}"
+    TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE=${TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE:-}
+    TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE="${TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE} --env-file=${toolbox_env_file}"
+
     if [[ -f "${TOOLBOX_TOOL_NAME}.env" ]]; then
-      TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE="--env-file ${TOOLBOX_TOOL_NAME}.env"
+      TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE="${TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE} --env-file=${TOOLBOX_TOOL_NAME}.env"
+      _log DEBUG "${YELLOW}Variable list from tool - ${TOOLBOX_TOOL_NAME}.env:${RESTORE}"
+      _log DEBUG "$(cat "${TOOLBOX_TOOL_NAME}".env)"
     fi
-    _toolbox_docker_run "$@"
+
+    toolbox_docker_run "$@"
   fi
 
-  _log TRACE "End '_exec_image' function"
+  _log TRACE "End 'toolbox_docker_exec' function"
 }
+
