@@ -20,4 +20,3 @@ export TOOLBOX_DOCKER_IMAGE=${TOOLBOX_DOCKER_IMAGE:-{{ .task.image }}}
 export TOOLBOX_TOOL_NAME="{{ (ds "task_name" ).name }}"
 
 toolbox_docker_exec "$@"
-
