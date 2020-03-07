@@ -19,4 +19,20 @@ export TOOLBOX_DOCKER_ENV_VARS="-e {{ $s := coll.Keys .task.env }}{{ join $s " -
 export TOOLBOX_DOCKER_IMAGE=${TOOLBOX_DOCKER_IMAGE:-{{ .task.image }}}
 export TOOLBOX_TOOL_NAME="{{ (ds "task_name" ).name }}"
 
+{{ if has .task "cmd" -}}
+export TOOLBOX_TOOL={{ .task.cmd}}
+{{ else }}
+export TOOLBOX_TOOL="${TOOLBOX_TOOL_NAME}"
+{{ end -}}
+
+{{ if has .task "working_dir" -}}
+export TOOLBOX_DOCKER_WORKING_DIR={{ .task.working_dir}}
+{{ end -}}
+
+{{ if has .task "entrypoint_override" -}}
+{{ if eq .task.entrypoint_override true -}}
+export TOOLBOX_DOCKER_ENTRYPOINT="${TOOLBOX_TOOL}"
+{{ end -}}
+{{ end -}}
+
 toolbox_docker_exec "$@"
