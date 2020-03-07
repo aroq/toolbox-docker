@@ -55,7 +55,7 @@ function toolbox_docker_exec() {
   TOOLBOX_DOCKER_SKIP=${TOOLBOX_DOCKER_SKIP:-false}
 
   if [ "${TOOLBOX_DOCKER_SKIP}" == "true" ]; then
-    toolbox_exec "$@"
+    toolbox_exec ${TOOLBOX_TOOL} "$@"
   else
     toolbox_docker_add_env_var_file_from_prefix "$(printf '%s\n' "$TOOLBOX_TOOL_NAME" | awk '{ print toupper($0) }')_"
 
