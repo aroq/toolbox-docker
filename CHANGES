@@ -1,3 +1,6 @@
+Version 0.1.5:
+ - Update docker exec params handling
+
 Version 0.1.4:
  - Use basename for TOOLBOX_DOCKER_ENTRYPOINT set from TOOLBOX_TOOL
 
