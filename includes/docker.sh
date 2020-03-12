@@ -6,7 +6,6 @@ TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE=${TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE:-}
 
 function toolbox_docker_run() {
   _log TRACE "Start 'toolbox_docker_run' function with args: $*"
-  local _arguments="$*"
 
   local _TOOLBOX_DOCKER_EXECUTABLE=${TOOLBOX_DOCKER_EXECUTABLE:-docker}
   local _TOOLBOX_DOCKER_RUN=${TOOLBOX_DOCKER_RUN:-run}
@@ -25,8 +24,6 @@ function toolbox_docker_run() {
   if [[ -t 0 ]]; then _TOOLBOX_DOCKER_RUN_FLAGS+=(-i); fi
   if [[ -t 1 ]]; then _TOOLBOX_DOCKER_RUN_FLAGS+=(-t); fi
 
-  local _TOOLBOX_DOCKER_RUN_ARGS=${TOOLBOX_DOCKER_RUN_ARGS:-${_arguments}}
-
   local _run_cmd=("${_TOOLBOX_DOCKER_RUN}" \
     $(toolbox_util_array_join "${_TOOLBOX_DOCKER_RUN_FLAGS[@]}") \
     -w ${_TOOLBOX_DOCKER_CURRENT_DIR}/${_TOOLBOX_DOCKER_WORKING_DIR} \
@@ -44,10 +41,21 @@ function toolbox_docker_run() {
     _run_cmd+=(--entrypoint=${_TOOLBOX_DOCKER_ENTRYPOINT})
   fi
 
-  _run_cmd+=(${_TOOLBOX_DOCKER_IMAGE} ${_TOOLBOX_DOCKER_RUN_ARGS})
-
   local _TOOLBOX_DOCKER_RUN_EXEC_METHOD=${TOOLBOX_DOCKER_RUN_EXEC_METHOD-toolbox_exec}
-  "${_TOOLBOX_DOCKER_RUN_EXEC_METHOD}" "${_TOOLBOX_DOCKER_EXECUTABLE}" "${_run_cmd[@]}"
+
+  if [[ "${_TOOLBOX_DOCKER_ENTRYPOINT}" = "sh" ]]; then
+    if [ ! $# -eq 0 ]; then
+      "${_TOOLBOX_DOCKER_RUN_EXEC_METHOD}" "${_TOOLBOX_DOCKER_EXECUTABLE}" "${_run_cmd[@]}" ${_TOOLBOX_DOCKER_IMAGE} -c "${*}"
+    else
+      "${_TOOLBOX_DOCKER_RUN_EXEC_METHOD}" "${_TOOLBOX_DOCKER_EXECUTABLE}" "${_run_cmd[@]}" ${_TOOLBOX_DOCKER_IMAGE}
+    fi
+  else
+    if [ ! $# -eq 0 ]; then
+      "${_TOOLBOX_DOCKER_RUN_EXEC_METHOD}" "${_TOOLBOX_DOCKER_EXECUTABLE}" "${_run_cmd[@]}" ${_TOOLBOX_DOCKER_IMAGE} "${@}"
+    else
+      "${_TOOLBOX_DOCKER_RUN_EXEC_METHOD}" "${_TOOLBOX_DOCKER_EXECUTABLE}" "${_run_cmd[@]}" ${_TOOLBOX_DOCKER_IMAGE}
+    fi
+  fi
 }
 
 function toolbox_docker_exec() {
