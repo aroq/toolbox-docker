@@ -7,53 +7,73 @@ TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE=${TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE:-}
 function toolbox_docker_run() {
   _log TRACE "Start 'toolbox_docker_run' function with args: $*"
 
-  local _TOOLBOX_DOCKER_EXECUTABLE=${TOOLBOX_DOCKER_EXECUTABLE:-docker}
-  local _TOOLBOX_DOCKER_RUN=${TOOLBOX_DOCKER_RUN:-run}
-  local _TOOLBOX_DOCKER_IMAGE=${TOOLBOX_DOCKER_IMAGE:-aroq/toolbox:latest}
-  local _TOOLBOX_DOCKER_CURRENT_DIR=${TOOLBOX_DOCKER_CURRENT_DIR:-$(pwd)}
-  local _TOOLBOX_DOCKER_WORKING_DIR=${TOOLBOX_DOCKER_WORKING_DIR:-}
-  local _TOOLBOX_DOCKER_VOLUME_SOURCE=${TOOLBOX_VOLUME_SOURCE:-$(pwd)}
-  local _TOOLBOX_DOCKER_VOLUME_TARGET=${TOOLBOX_DOCKER_VOLUME_TARGET:-${_TOOLBOX_DOCKER_VOLUME_SOURCE}}
+  TOOLBOX_DOCKER_EXECUTABLE=${TOOLBOX_DOCKER_EXECUTABLE:-docker}
+  TOOLBOX_DOCKER_RUN=${TOOLBOX_DOCKER_RUN:-run}
+  TOOLBOX_DOCKER_IMAGE=${TOOLBOX_DOCKER_IMAGE:-aroq/toolbox:latest}
+  TOOLBOX_DOCKER_CURRENT_DIR=${TOOLBOX_DOCKER_CURRENT_DIR:-$(pwd)}
+  TOOLBOX_DOCKER_WORKING_DIR=${TOOLBOX_DOCKER_WORKING_DIR:-}
+  TOOLBOX_DOCKER_VOLUME_SOURCE=${TOOLBOX_VOLUME_SOURCE:-$(pwd)}
+  TOOLBOX_DOCKER_VOLUME_TARGET=${TOOLBOX_DOCKER_VOLUME_TARGET:-${TOOLBOX_DOCKER_VOLUME_SOURCE}}
   # local _TOOLBOX_DOCKER_SSH_FORWARD=${TOOLBOX_DOCKER_SSH_FORWARD:-false}
-  local _TOOLBOX_DOCKER_ENTRYPOINT=${TOOLBOX_DOCKER_ENTRYPOINT:-}
-  local _TOOLBOX_DOCKER_ENV_VARS=${TOOLBOX_DOCKER_ENV_VARS:-}
+  TOOLBOX_DOCKER_ENTRYPOINT=${TOOLBOX_DOCKER_ENTRYPOINT:-}
+  TOOLBOX_DOCKER_ENV_VARS=${TOOLBOX_DOCKER_ENV_VARS:-}
+  TOOLBOX_DOCKER_EXEC_TITLE=${TOOLBOX_DOCKER_EXEC_TITLE-"Execute in docker"}
+
+  TOOLBOX_EXEC_LOG_LEVEL_CMD="DEBUG"
+
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    TOOLBOX_DOCKER_MOUNT_OPTIONS=":delegated"
+  else
+    TOOLBOX_DOCKER_MOUNT_OPTIONS=''
+  fi
+
+  TOOLBOX_DOCKER_RUN_EXEC_METHOD=${TOOLBOX_DOCKER_RUN_EXEC_METHOD-toolbox_exec}
 
   # Only allocate tty if one is detected. See - https://stackoverflow.com/questions/911168
-  local _TOOLBOX_DOCKER_RUN_FLAGS
-  _TOOLBOX_DOCKER_RUN_FLAGS+=(--rm)
-  if [[ -t 0 ]]; then _TOOLBOX_DOCKER_RUN_FLAGS+=(-i); fi
-  if [[ -t 1 ]]; then _TOOLBOX_DOCKER_RUN_FLAGS+=(-t); fi
+  local _run_args
+  _run_args+=(--rm)
+  if [ "${TOOLBOX_DOCKER_RUN_EXEC_METHOD}" = "toolbox_run" ]; then
+    if [[ -t 0 ]]; then _run_args+=(-i); fi
+    if [[ -t 1 ]]; then _run_args+=(-t); fi
+  else
+    if [[ -t 0 ]]; then _run_args+=(-i); fi
+    _run_args+=(-t)
+  fi
 
-  local _run_cmd=("${_TOOLBOX_DOCKER_RUN}" \
-    $(toolbox_util_array_join "${_TOOLBOX_DOCKER_RUN_FLAGS[@]}") \
-    -w ${_TOOLBOX_DOCKER_CURRENT_DIR}/${_TOOLBOX_DOCKER_WORKING_DIR} \
-    -v ${_TOOLBOX_DOCKER_VOLUME_SOURCE}:${_TOOLBOX_DOCKER_VOLUME_TARGET})
+  local _run_cmd=("${TOOLBOX_DOCKER_RUN}" \
+    $(toolbox_util_array_join "${_run_args[@]}") \
+    -w ${TOOLBOX_DOCKER_CURRENT_DIR}/${TOOLBOX_DOCKER_WORKING_DIR} \
+    -v ${TOOLBOX_DOCKER_VOLUME_SOURCE}:${TOOLBOX_DOCKER_VOLUME_TARGET}${TOOLBOX_DOCKER_MOUNT_OPTIONS})
 
   if [[ ! -z "${TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE}" ]]; then
     _run_cmd+=(${TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE})
   fi
 
-  if [[ ! -z "${_TOOLBOX_DOCKER_ENV_VARS}" ]]; then
-    _run_cmd+=(${_TOOLBOX_DOCKER_ENV_VARS})
+  if [[ ! -z "${TOOLBOX_DOCKER_ENV_VARS}" ]]; then
+    _run_cmd+=(${TOOLBOX_DOCKER_ENV_VARS})
   fi
 
-  if [[ ! -z "${_TOOLBOX_DOCKER_ENTRYPOINT}" ]]; then
-    _run_cmd+=(--entrypoint=${_TOOLBOX_DOCKER_ENTRYPOINT})
+  if [[ ! -z "${TOOLBOX_DOCKER_ENTRYPOINT}" ]]; then
+    _run_cmd+=(--entrypoint=${TOOLBOX_DOCKER_ENTRYPOINT})
   fi
 
-  local _TOOLBOX_DOCKER_RUN_EXEC_METHOD=${TOOLBOX_DOCKER_RUN_EXEC_METHOD-toolbox_exec}
+  if [[ ! -z "${TOOLBOX_DOCKER_ENTRYPOINT}" ]]; then
+    TOOLBOX_DOCKER_EXEC_ENTRYPOINT_TITLE=${TOOLBOX_DOCKER_EXEC_ENTRYPOINT_TITLE-"${YELLOW}[image: ${TOOLBOX_DOCKER_IMAGE}, entrypoint: ${TOOLBOX_DOCKER_ENTRYPOINT}]"}
+  else
+    TOOLBOX_DOCKER_EXEC_ENTRYPOINT_TITLE=${TOOLBOX_DOCKER_EXEC_ENTRYPOINT_TITLE-"${YELLOW}[image: ${TOOLBOX_DOCKER_IMAGE}, entrypoint: default]"}
+  fi
 
-  if [[ "${_TOOLBOX_DOCKER_ENTRYPOINT}" = "sh" ]]; then
+  if [[ "${TOOLBOX_DOCKER_ENTRYPOINT}" = "sh" ]]; then
     if [ ! $# -eq 0 ]; then
-      "${_TOOLBOX_DOCKER_RUN_EXEC_METHOD}" "${_TOOLBOX_DOCKER_EXECUTABLE}" "${_run_cmd[@]}" ${_TOOLBOX_DOCKER_IMAGE} -c "${*}"
+      "${TOOLBOX_DOCKER_RUN_EXEC_METHOD}" "${TOOLBOX_DOCKER_EXEC_TITLE} ${TOOLBOX_DOCKER_EXEC_ENTRYPOINT_TITLE}${BLUE}: ${*}${RESTORE}" "${TOOLBOX_DOCKER_EXECUTABLE}" "${_run_cmd[@]}" ${TOOLBOX_DOCKER_IMAGE} -c "${*}"
     else
-      "${_TOOLBOX_DOCKER_RUN_EXEC_METHOD}" "${_TOOLBOX_DOCKER_EXECUTABLE}" "${_run_cmd[@]}" ${_TOOLBOX_DOCKER_IMAGE}
+      "${TOOLBOX_DOCKER_RUN_EXEC_METHOD}" "${TOOLBOX_DOCKER_EXEC_TITLE}" ${TOOLBOX_DOCKER_EXEC_ENTRYPOINT_TITLE} "${TOOLBOX_DOCKER_EXECUTABLE}" "${_run_cmd[@]}" ${TOOLBOX_DOCKER_IMAGE}
     fi
   else
     if [ ! $# -eq 0 ]; then
-      "${_TOOLBOX_DOCKER_RUN_EXEC_METHOD}" "${_TOOLBOX_DOCKER_EXECUTABLE}" "${_run_cmd[@]}" ${_TOOLBOX_DOCKER_IMAGE} "${@}"
+      "${TOOLBOX_DOCKER_RUN_EXEC_METHOD}" "${TOOLBOX_DOCKER_EXEC_TITLE} ${TOOLBOX_DOCKER_EXEC_ENTRYPOINT_TITLE}${BLUE}: ${*}${RESTORE}" "${TOOLBOX_DOCKER_EXECUTABLE}" "${_run_cmd[@]}" ${TOOLBOX_DOCKER_IMAGE} "${@}"
     else
-      "${_TOOLBOX_DOCKER_RUN_EXEC_METHOD}" "${_TOOLBOX_DOCKER_EXECUTABLE}" "${_run_cmd[@]}" ${_TOOLBOX_DOCKER_IMAGE}
+      "${TOOLBOX_DOCKER_RUN_EXEC_METHOD}" "${TOOLBOX_DOCKER_EXEC_TITLE} ${TOOLBOX_DOCKER_EXEC_ENTRYPOINT_TITLE}" "${TOOLBOX_DOCKER_EXECUTABLE}" "${_run_cmd[@]}" ${TOOLBOX_DOCKER_IMAGE}
     fi
   fi
 }
@@ -63,7 +83,7 @@ function toolbox_docker_exec() {
   TOOLBOX_DOCKER_SKIP=${TOOLBOX_DOCKER_SKIP:-false}
 
   if [ "${TOOLBOX_DOCKER_SKIP}" == "true" ]; then
-    toolbox_exec ${TOOLBOX_TOOL} "$@"
+    toolbox_exec "Execute command without docker" ${TOOLBOX_TOOL} "$@"
   else
     toolbox_docker_add_env_var_file_from_prefix "$(printf '%s\n' "$TOOLBOX_TOOL_NAME" | awk '{ print toupper($0) }')_"
 
