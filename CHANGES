@@ -1,3 +1,6 @@
+Version 0.1.7:
+ - Update log colors
+
 Version 0.1.6:
  - Refactor docker exec
 
