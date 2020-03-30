@@ -1,3 +1,6 @@
+Version 0.1.10:
+ - Add TOOLBOX_DOCKER_VOLUMES env var
+
 Version 0.1.9:
  - Update TOOLBOX_DOCKER_ENTRYPOINT handling
 
