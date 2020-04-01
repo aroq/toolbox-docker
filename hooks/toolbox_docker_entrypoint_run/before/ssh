@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 TOOLBOX_HOOKS_SSH=${TOOLBOX_HOOKS_SSH-false}
+TOOLBOX_SECRETS_DIR=${TOOLBOX_SECRETS_DIR-toolbox/.secrets}
 
 if [ "${TOOLBOX_HOOKS_SSH}" == "true" ]; then
   if [ "${TOOLBOX_LOG_LEVEL}" = "TRACE" ]; then set -x; fi
@@ -25,3 +26,4 @@ if [ "${TOOLBOX_HOOKS_SSH}" == "true" ]; then
 else
   _log DEBUG "TOOLBOX_HOOKS_SSH=false, hook is not executed"
 fi
+
