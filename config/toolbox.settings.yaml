@@ -2,3 +2,5 @@ config:
   toolbox-docker:
     params:
       template: toolbox/deps/toolbox-docker/templates/run.tpl
+      tool_dirs:
+      - toolbox/deps/toolbox-docker

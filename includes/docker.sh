@@ -13,6 +13,7 @@ export TOOLBOX_DOCKER_MODE=${TOOLBOX_DOCKER_MODE:-}
 export TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE=${TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE:-}
 export TOOLBOX_DOCKER_SKIP=${TOOLBOX_DOCKER_SKIP:-false}
 export TOOLBOX_DOCKER_DIND=${TOOLBOX_DOCKER_DIND:-false}
+export TOOLBOX_DOCKER_MOUNTS_DIR=${TOOLBOX_DOCKER_MOUNTS_DIR-toolbox/mounts}
 
 # Set docker context vars
 if [ -f /.dockerenv ]; then
@@ -67,24 +68,16 @@ function toolbox_docker_run() {
     -w ${TOOLBOX_DOCKER_CURRENT_DIR}/${TOOLBOX_DOCKER_WORKING_DIR} \
     -v ${TOOLBOX_DOCKER_VOLUME_SOURCE}:${TOOLBOX_DOCKER_VOLUME_TARGET}${TOOLBOX_DOCKER_MOUNT_OPTIONS})
 
-  if [[ ! -z "${TOOLBOX_DOCKER_VOLUMES}" ]]; then
-    for i in ${TOOLBOX_DOCKER_VOLUMES//,/ }
-    do
-      _run_cmd+=(-v ${TOOLBOX_DOCKER_VOLUMES})
-    done
-  fi
-
-  # rm -fR "${TOOLBOX_DOCKER_CURRENT_DIR}/toolbox/.tmp/mounts"
   if [[ ! -z "${TOOLBOX_DOCKER_MOUNTS}" ]]; then
     rm -fR "${TOOLBOX_DOCKER_CURRENT_DIR}/toolbox/.tmp/mounts"
     mkdir -p "${TOOLBOX_DOCKER_CURRENT_DIR}/toolbox/.tmp"
-    cp -fR "${TOOLBOX_DOCKER_CURRENT_DIR}/toolbox/mounts" "${TOOLBOX_DOCKER_CURRENT_DIR}/toolbox/.tmp/"
+    toolbox_run "toolbox_docker_run :: Copy mounts dir into temporary location which would be actually mounted into container" \
+      cp -fR "${TOOLBOX_DOCKER_CURRENT_DIR}/${TOOLBOX_DOCKER_MOUNTS_DIR}" "${TOOLBOX_DOCKER_CURRENT_DIR}/toolbox/.tmp/"
 
     toolbox_exec_hook "toolbox_docker_run_mounts" "before"
     for i in ${TOOLBOX_DOCKER_MOUNTS//,/ }
     do
-      # mkdir -p "${TOOLBOX_DOCKER_CURRENT_DIR}/toolbox/.tmp/mounts"
-      if [ -d "${TOOLBOX_DOCKER_CURRENT_DIR}/toolbox/mounts$i" ]; then
+      if [ -d "${TOOLBOX_DOCKER_CURRENT_DIR}/${TOOLBOX_DOCKER_MOUNTS_DIR}$i" ]; then
         _run_cmd+=(-v ${TOOLBOX_DOCKER_CURRENT_DIR}/toolbox/.tmp/mounts${i}:${i}${TOOLBOX_DOCKER_MOUNT_OPTIONS})
       fi
     done
