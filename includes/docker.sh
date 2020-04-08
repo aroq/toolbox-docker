@@ -122,8 +122,7 @@ function toolbox_docker_exec() {
   TOOLBOX_DOCKER_SKIP=${TOOLBOX_DOCKER_SKIP:-false}
 
   if [ "${TOOLBOX_DOCKER_SKIP}" == "true" ]; then
-    shift
-    toolbox_exec "Execute command without docker" ${TOOLBOX_TOOL_PATH} "$@"
+    toolbox_exec "Execute command without docker" ${TOOLBOX_TOOL} "$@"
   else
     toolbox_docker_add_env_var_file_from_prefix "TOOLBOX_"
 
