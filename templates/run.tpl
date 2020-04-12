@@ -41,4 +41,6 @@ export TOOLBOX_DOCKER_ENTRYPOINT=${TOOLBOX_DOCKER_ENTRYPOINT:-$(basename "${TOOL
 . "{{ getenv "TOOLBOX_DEPS_DIR" "toolbox/deps" }}/toolbox-docker/includes/docker.sh"
 
 
-toolbox_docker_exec "$@"
+TOOLBOX_EXEC_SUBSHELL=false
+toolbox_exec_handler "toolbox_docker_exec" "$@"
+TOOLBOX_EXEC_SUBSHELL=true
