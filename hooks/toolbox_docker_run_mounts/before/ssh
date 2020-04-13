@@ -3,8 +3,6 @@
 TOOLBOX_HOOKS_SSH=${TOOLBOX_HOOKS_SSH-false}
 
 if [ "${TOOLBOX_HOOKS_SSH}" == "true" ]; then
-  if [ "${TOOLBOX_LOG_LEVEL}" = "TRACE" ]; then set -x; fi
-
   if [ -f toolbox/.secrets/id_rsa ]; then
     rm -f toolbox/.tmp/mounts/root/.ssh/id_rsa
 
@@ -21,8 +19,6 @@ if [ "${TOOLBOX_HOOKS_SSH}" == "true" ]; then
   if [ "${TOOLBOX_DOCKER_CONTEXT}" = "DOCKER" ] && [ "${TOOLBOX_DOCKER_MODE}" = "DIND" ]; then
     chown -R root:root toolbox/.tmp/mounts/root/.ssh; \
   fi;
-
-  if [ "${TOOLBOX_LOG_LEVEL}" = "TRACE" ]; then set +x; fi
 else
   _log DEBUG "TOOLBOX_HOOKS_SSH=false, hook is not executed"
 fi

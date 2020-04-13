@@ -4,8 +4,6 @@ TOOLBOX_HOOKS_SSH=${TOOLBOX_HOOKS_SSH-false}
 TOOLBOX_SECRETS_DIR=${TOOLBOX_SECRETS_DIR-toolbox/.secrets}
 
 if [ "${TOOLBOX_HOOKS_SSH}" == "true" ]; then
-  if [ "${TOOLBOX_LOG_LEVEL}" = "TRACE" ]; then set -x; fi
-
   if [ -f "${TOOLBOX_SECRETS_DIR}"/id_rsa ]; then
     mkdir -p /root/.ssh/
     rm -f /root/.ssh/id_rsa
@@ -21,8 +19,6 @@ if [ "${TOOLBOX_HOOKS_SSH}" == "true" ]; then
     cp "${TOOLBOX_DOCKER_MOUNTS_DIR}"/root/.ssh/config /root/.ssh/config
     chmod 600 /root/.ssh/config
   fi
-
-  if [ "${TOOLBOX_LOG_LEVEL}" = "TRACE" ]; then set +x; fi
 else
   _log DEBUG "TOOLBOX_HOOKS_SSH=false, hook is not executed"
 fi

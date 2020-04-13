@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+TOOLBOX_HOOKS_SSH=${TOOLBOX_HOOKS_SSH-false}
+
+if [ "${TOOLBOX_HOOKS_SSH}" == "true" ]; then
+  if [ "${TOOLBOX_DOCKER_CONTEXT}" = "DOCKER" ] && [ "${TOOLBOX_DOCKER_MODE}" = "DOCKER" ]; then
+    _log DEBUG "Hook :: ${1} :: ${2} :: TOOLBOX_HOOKS_SSH==true, TOOLBOX_DOCKER_CONTEXT==DOCKER, TOOLBOX_DOCKER_MODE=DOCKER, executing the hook"
+
+    if [ -f toolbox/.secrets/id_rsa ]; then
+      mkdir -p /root/.ssh/
+      rm -f /root/.ssh/id_rsa
+
+      toolbox_run "Hook :: ${1} :: ${2} :: Copy id_rsa key into /root/.ssh" \
+        cp toolbox/.secrets/id_rsa /root/.ssh/id_rsa
+
+      chmod 400 /root/.ssh/id_rsa
+    fi
+
+    if [ -f "${TOOLBOX_DOCKER_MOUNTS_DIR}"/root/.ssh/config ]; then
+      rm -f /root/.ssh/config
+
+      toolbox_run "Hook :: ${1} :: ${2} :: Copy ssh config into /root/.ssh" \
+        cp "${TOOLBOX_DOCKER_MOUNTS_DIR}"/root/.ssh/config /root/.ssh/config
+
+      chmod 600 /root/.ssh/config
+    fi
+  fi
+else
+  _log DEBUG "Hook :: ${1} :: ${2} :: TOOLBOX_HOOKS_SSH=false, hook is not executed"
+fi
