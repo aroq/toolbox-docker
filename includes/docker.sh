@@ -49,7 +49,7 @@ function toolbox_docker_run() {
     TOOLBOX_DOCKER_MOUNT_OPTIONS=''
   fi
 
-  TOOLBOX_DOCKER_RUN_EXEC_METHOD=${TOOLBOX_DOCKER_RUN_EXEC_METHOD-toolbox_exec}
+  TOOLBOX_DOCKER_RUN_EXEC_METHOD=${TOOLBOX_DOCKER_RUN_EXEC_METHOD-toolbox_run}
 
   # Only allocate tty if one is detected. See - https://stackoverflow.com/questions/911168
   local _run_args
