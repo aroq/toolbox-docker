@@ -1,3 +1,6 @@
+Version 0.1.18:
+ - Add docker_exec hook
+
 Version 0.1.17:
  - Add mounts
 
