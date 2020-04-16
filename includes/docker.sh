@@ -3,27 +3,21 @@
 # shellcheck disable=SC2206
 
 # Possible contexts:
-# - docker
-#   - dind (TOOLBOX_DOCKER_DIND == true)
-# - docker_skip (TOOLBOX_DOCKER_SKIP == true )
-# - shell_to_docker (TOOLBOX_DOCKER_CONTEXT == "SHELL_TO_DOCKER")
+# - Executed inside HOST without Docker (TOOLBOX_EXEC_CONTEXT == "HOST" )
+# - Docker executed inside toolbox (TOOLBOX_EXEC_CONTEXT == "DOCKER_INSIDE")
+# - Docker executed outide toolbox (TOOLBOX_EXEC_CONTEXT == "DOCKER_OUTSIDE")
+# - Docker executed inside Docker (TOOLBOX_EXEC_CONTEXT == "DOCKER_DIND")
 
-export TOOLBOX_DOCKER_CONTEXT=${TOOLBOX_DOCKER_CONTEXT:-SHELL_TO_DOCKER}
+export TOOLBOX_EXEC_CONTEXT=${TOOLBOX_EXEC_CONTEXT:-DOCKER_INSIDE}
 export TOOLBOX_DOCKER_MODE=${TOOLBOX_DOCKER_MODE:-}
 export TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE=${TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE:-}
-export TOOLBOX_DOCKER_SKIP=${TOOLBOX_DOCKER_SKIP:-false}
-export TOOLBOX_DOCKER_DIND=${TOOLBOX_DOCKER_DIND:-false}
+# export TOOLBOX_DOCKER_DIND=${TOOLBOX_DOCKER_DIND:-false}
 export TOOLBOX_DOCKER_MOUNTS_DIR=${TOOLBOX_DOCKER_MOUNTS_DIR-toolbox/mounts}
 
 # Set docker context vars
 if [ -f /.dockerenv ]; then
-  TOOLBOX_DOCKER_CONTEXT="DOCKER"
-  TOOLBOX_DOCKER_MODE="DOCKER"
-  if [ ! "${TOOLBOX_DOCKER_DIND}" == "true" ]; then
-    echo "Inside docker already, setting TOOLBOX_DOCKER_SKIP to true"
-    TOOLBOX_DOCKER_SKIP=true
-  else
-    TOOLBOX_DOCKER_MODE="DIND"
+  if [ ! "${TOOLBOX_EXEC_CONTEXT}" = "DOCKER_DIND" ]; then
+    TOOLBOX_EXEC_CONTEXT="DOCKER_OUTSIDE"
   fi
 fi
 
@@ -41,48 +35,52 @@ function toolbox_docker_run() {
   # local _TOOLBOX_DOCKER_SSH_FORWARD=${TOOLBOX_DOCKER_SSH_FORWARD:-false}
   TOOLBOX_DOCKER_ENTRYPOINT=${TOOLBOX_DOCKER_ENTRYPOINT:-}
   TOOLBOX_DOCKER_ENV_VARS=${TOOLBOX_DOCKER_ENV_VARS:-}
-  TOOLBOX_DOCKER_EXEC_TITLE=${TOOLBOX_DOCKER_EXEC_TITLE-"Execute in docker"}
+  TOOLBOX_DOCKER_EXEC_TITLE=${TOOLBOX_DOCKER_EXEC_TITLE:-"Execute in docker"}
 
+  TOOLBOX_DOCKER_RUN_EXEC_METHOD=${TOOLBOX_DOCKER_RUN_EXEC_METHOD:-toolbox_run}
+
+  TOOLBOX_DOCKER_RUN_ARG_CLEANUP=${TOOLBOX_DOCKER_RUN_ARG_CLEANUP:-true}
+  TOOLBOX_DOCKER_RUN_ARG_ALLOCATE_PSEUDO_TTY=${TOOLBOX_DOCKER_RUN_ARG_ALLOCATE_PSEUDO_TTY:-true}
+  TOOLBOX_DOCKER_RUN_ARG_KEEP_STDIN_OPEN=${TOOLBOX_DOCKER_RUN_ARG_KEEP_STDIN_OPEN:-true}
+  TOOLBOX_DOCKER_RUN_ARGS=${TOOLBOX_DOCKER_RUN_ARGS:-}
+
+  local _run_args
+
+  if [ "${TOOLBOX_DOCKER_RUN_ARG_CLEANUP}" = true ]; then
+    _run_args+=(--rm)
+  fi
+
+  # Only allocate tty if one is detected. See - https://stackoverflow.com/questions/911168
+  if [ "${TOOLBOX_DOCKER_RUN_ARG_KEEP_STDIN_OPEN}" = true ]; then
+    if [[ -t 0 ]]; then _run_args+=(-i); fi
+  fi
+
+  if [ "${TOOLBOX_DOCKER_RUN_ARG_ALLOCATE_PSEUDO_TTY}" = true ]; then
+    _run_args+=(-t)
+  fi
+
+  _run_args+=(${TOOLBOX_DOCKER_RUN_ARGS})
+
+  # Mounts & working dir
   if [[ "$OSTYPE" == "darwin"* ]]; then
     TOOLBOX_DOCKER_MOUNT_OPTIONS=":delegated"
   else
     TOOLBOX_DOCKER_MOUNT_OPTIONS=''
   fi
-
-  TOOLBOX_DOCKER_RUN_EXEC_METHOD=${TOOLBOX_DOCKER_RUN_EXEC_METHOD-toolbox_run}
-
-  # Only allocate tty if one is detected. See - https://stackoverflow.com/questions/911168
-  local _run_args
-  _run_args+=(--rm)
-  if [ "${TOOLBOX_DOCKER_RUN_EXEC_METHOD}" = "toolbox_run" ]; then
-    if [[ -t 0 ]]; then _run_args+=(-i); fi
-    if [[ -t 1 ]]; then _run_args+=(-t); fi
-  else
-    if [[ -t 0 ]]; then _run_args+=(-i); fi
-    _run_args+=(-t)
-  fi
-
-  # Mounts & working dir
   local _run_cmd=("${TOOLBOX_DOCKER_RUN}" \
     $(toolbox_util_array_join "${_run_args[@]}") \
     -w ${TOOLBOX_DOCKER_CURRENT_DIR}/${TOOLBOX_DOCKER_WORKING_DIR} \
     -v ${TOOLBOX_DOCKER_VOLUME_SOURCE}:${TOOLBOX_DOCKER_VOLUME_TARGET}${TOOLBOX_DOCKER_MOUNT_OPTIONS})
 
   if [[ ! -z "${TOOLBOX_DOCKER_MOUNTS}" ]]; then
-    rm -fR "${TOOLBOX_DOCKER_CURRENT_DIR}/toolbox/.tmp/mounts"
-    mkdir -p "${TOOLBOX_DOCKER_CURRENT_DIR}/toolbox/.tmp"
-    toolbox_run "toolbox_docker_run :: Copy mounts dir into temporary location which would be actually mounted into container" \
-      cp -fR "${TOOLBOX_DOCKER_CURRENT_DIR}/${TOOLBOX_DOCKER_MOUNTS_DIR}" "${TOOLBOX_DOCKER_CURRENT_DIR}/toolbox/.tmp/"
-
-    toolbox_exec_hook "toolbox_docker_run_mounts" "before"
     for i in ${TOOLBOX_DOCKER_MOUNTS//,/ }
     do
-      if [ -d "${TOOLBOX_DOCKER_CURRENT_DIR}/${TOOLBOX_DOCKER_MOUNTS_DIR}$i" ]; then
+      if [ -d "${TOOLBOX_DOCKER_CURRENT_DIR}/toolbox/.tmp/mounts${i}" ]; then
         _run_cmd+=(-v ${TOOLBOX_DOCKER_CURRENT_DIR}/toolbox/.tmp/mounts${i}:${i}${TOOLBOX_DOCKER_MOUNT_OPTIONS})
       fi
     done
-    toolbox_exec_hook "toolbox_docker_run_mounts" "after"
   fi
+
 
   if [[ ! -z "${TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE}" ]]; then
     _run_cmd+=(${TOOLBOX_DOCKER_RUN_TOOL_ENV_FILE})
@@ -102,27 +100,18 @@ function toolbox_docker_run() {
     TOOLBOX_DOCKER_EXEC_ENTRYPOINT_TITLE=${TOOLBOX_DOCKER_EXEC_ENTRYPOINT_TITLE-"${YELLOW}[image: ${TOOLBOX_DOCKER_IMAGE}, entrypoint: default]"}
   fi
 
-  if [[ "${TOOLBOX_DOCKER_ENTRYPOINT}" = "sh" ]]; then
-    if [ ! $# -eq 0 ]; then
-      "${TOOLBOX_DOCKER_RUN_EXEC_METHOD}" "${TOOLBOX_DOCKER_EXEC_TITLE} ${TOOLBOX_DOCKER_EXEC_ENTRYPOINT_TITLE}${GREEN}: ${*}${RESTORE}" "${TOOLBOX_DOCKER_EXECUTABLE}" "${_run_cmd[@]}" ${TOOLBOX_DOCKER_IMAGE} -c "${*}"
-    else
-      "${TOOLBOX_DOCKER_RUN_EXEC_METHOD}" "${TOOLBOX_DOCKER_EXEC_TITLE}" ${TOOLBOX_DOCKER_EXEC_ENTRYPOINT_TITLE} "${TOOLBOX_DOCKER_EXECUTABLE}" "${_run_cmd[@]}" ${TOOLBOX_DOCKER_IMAGE}
-    fi
+  if [ ! $# -eq 0 ]; then
+    "${TOOLBOX_DOCKER_RUN_EXEC_METHOD}" "${TOOLBOX_DOCKER_EXEC_TITLE} ${TOOLBOX_DOCKER_EXEC_ENTRYPOINT_TITLE}${GREEN}: ${*}${RESTORE}" "${TOOLBOX_DOCKER_EXECUTABLE}" "${_run_cmd[@]}" ${TOOLBOX_DOCKER_IMAGE} "${@}"
   else
-    if [ ! $# -eq 0 ]; then
-      "${TOOLBOX_DOCKER_RUN_EXEC_METHOD}" "${TOOLBOX_DOCKER_EXEC_TITLE} ${TOOLBOX_DOCKER_EXEC_ENTRYPOINT_TITLE}${GREEN}: ${*}${RESTORE}" "${TOOLBOX_DOCKER_EXECUTABLE}" "${_run_cmd[@]}" ${TOOLBOX_DOCKER_IMAGE} "${@}"
-    else
-      "${TOOLBOX_DOCKER_RUN_EXEC_METHOD}" "${TOOLBOX_DOCKER_EXEC_TITLE} ${TOOLBOX_DOCKER_EXEC_ENTRYPOINT_TITLE}" "${TOOLBOX_DOCKER_EXECUTABLE}" "${_run_cmd[@]}" ${TOOLBOX_DOCKER_IMAGE}
-    fi
+    "${TOOLBOX_DOCKER_RUN_EXEC_METHOD}" "${TOOLBOX_DOCKER_EXEC_TITLE} ${TOOLBOX_DOCKER_EXEC_ENTRYPOINT_TITLE}" "${TOOLBOX_DOCKER_EXECUTABLE}" "${_run_cmd[@]}" ${TOOLBOX_DOCKER_IMAGE}
   fi
 }
 
 function toolbox_docker_exec() {
   _log TRACE "Start 'toolbox_docker_exec' function with args: $*"
-  TOOLBOX_DOCKER_SKIP=${TOOLBOX_DOCKER_SKIP:-false}
 
-  if [ "${TOOLBOX_DOCKER_SKIP}" == "true" ]; then
-    toolbox_exec "Execute command without docker" ${TOOLBOX_TOOL} "$@"
+  if [ "${TOOLBOX_EXEC_CONTEXT}" = "HOST" ] || [ "${TOOLBOX_EXEC_CONTEXT}" = "DOCKER_OUTSIDE" ]; then
+    "${TOOLBOX_EXEC_METHOD}" "Execute without docker" "${TOOLBOX_TOOL}" "$@"
   else
     toolbox_docker_add_env_var_file_from_prefix "TOOLBOX_"
 

@@ -4,3 +4,20 @@ config:
       template: toolbox/deps/toolbox-docker/templates/run.tpl
       tool_dirs:
       - toolbox/deps/toolbox-docker
+  ssh:
+    params:
+      files:
+        exec_contexts:
+          DOCKER_OUTSIDE:
+            - toolbox/.secrets/id_rsa:/root/.ssh/id_rsa:400
+            - toolbox/deps/toolbox-docker/mounts/root/.ssh/config:/root/.ssh/config:600
+          DOCKER_INSIDE:
+            - toolbox/.secrets/id_rsa:toolbox/.tmp/mounts/root/.ssh/id_rsa:400
+            - toolbox/deps/toolbox-docker/mounts/root/.ssh/config:toolbox/.tmp/mounts/root/.ssh/config:600
+          DOCKER_DIND:
+            - toolbox/.secrets/id_rsa:toolbox/.tmp/mounts/root/.ssh/id_rsa:400:root:root
+            - toolbox/deps/toolbox-docker/mounts/root/.ssh/config:toolbox/.tmp/mounts/root/.ssh/config:600:root:root
+      env:
+        TOOLBOX_DOCKER_MOUNTS: /root/.ssh
+        TOOLBOX_HOOKS_SSH: true
+

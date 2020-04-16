@@ -10,7 +10,7 @@ export {{ $k }}=${ {{- $k }}:-{{ $v }}}
 export TOOLBOX_DOCKER_ENV_VARS="-e {{ $s := coll.Keys .task.env }}{{ join $s " -e " }}"
 {{ end }}
 export TOOLBOX_DOCKER_IMAGE=${TOOLBOX_DOCKER_IMAGE:-{{ .task.image }}}
-export TOOLBOX_TOOL_NAME="{{ (ds "task_name" ).name }}"
+export TOOLBOX_TOOL_NAME=$(basename "{{ (ds "task_name" ).name }}")
 
 {{ if has .task "cmd" -}}
 export TOOLBOX_TOOL={{ .task.cmd}}
@@ -33,6 +33,16 @@ export TOOLBOX_DOCKER_ENTRYPOINT=${TOOLBOX_DOCKER_ENTRYPOINT:-$(basename "${TOOL
 {{ end -}}
 {{ end -}}
 
+# Setup files
+{{ if has .task "files" -}}
+{{ if has .task.files "exec_contexts" -}}
+{{- range $context, $files := .task.files.exec_contexts -}}
+export TOOLBOX_FILES_{{ $context }}="{{ $l :=  $files | uniq }}{{ join $l "," }}"
+{{ end -}}
+{{ end -}}
+{{ end -}}
+
+
 # Includes
 . "{{ getenv "TOOLBOX_DEPS_DIR" "toolbox/deps" }}/toolbox-utils/includes/init.sh"
 . "{{ getenv "TOOLBOX_DEPS_DIR" "toolbox/deps" }}/toolbox-utils/includes/util.sh"
@@ -41,6 +51,4 @@ export TOOLBOX_DOCKER_ENTRYPOINT=${TOOLBOX_DOCKER_ENTRYPOINT:-$(basename "${TOOL
 . "{{ getenv "TOOLBOX_DEPS_DIR" "toolbox/deps" }}/toolbox-docker/includes/docker.sh"
 
 
-TOOLBOX_EXEC_SUBSHELL=false
-toolbox_exec_handler "toolbox_docker_exec" "$@"
-TOOLBOX_EXEC_SUBSHELL=true
+toolbox_exec_wrapper "toolbox_docker_exec" "$@"

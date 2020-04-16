@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+
+rm -fR toolbox/.tmp/mounts
+
+contexts=("ALL" "${TOOLBOX_EXEC_CONTEXT}")
+
+for context in "${contexts[@]}"
+do
+  var_name="TOOLBOX_FILES_${context}"
+  eval $var_name'=${'$var_name':-}'
+  eval 'TOOLBOX_FILES=$'$var_name
+
+  if [ "${TOOLBOX_EXEC_CONTEXT}" = "HOST" ]; then
+    _log INFO "Files would not be copied as TOOLBOX_EXEC_CONTEXT==HOST"
+  else
+    for i in ${TOOLBOX_FILES//,/ }
+    do
+      _log TRACE "FILE: $i"
+
+      src=""
+      dest=""
+      mode=""
+      user=""
+      group=""
+
+      files=(${i//\:/ })
+
+      case ${#files[@]} in
+        0)
+          ;;
+        1)
+          src=${files[0]}
+          dest=${files[0]}
+          ;;
+        2)
+          src=${files[0]}
+          dest=${files[1]}
+          ;;
+        3)
+          src=${files[0]}
+          dest=${files[1]}
+          mode=${files[2]}
+          ;;
+        4)
+          src=${files[0]}
+          dest=${files[1]}
+          mode=${files[2]}
+          user=${files[3]}
+          ;;
+        5)
+          src=${files[0]}
+          dest=${files[1]}
+          mode=${files[2]}
+          user=${files[3]}
+          group=${files[4]}
+          ;;
+      esac
+
+      _log DEBUG "src: $src"
+      _log DEBUG "dest: $dest"
+      _log DEBUG "mode: $mode"
+
+      (
+        TOOLBOX_EXEC_LOG_LEVEL_TITLE=${TOOLBOX_EXEC_LOG_LEVEL_TITLE-DEBUG}
+        TOOLBOX_EXEC_LOG_LEVEL_CMD=${TOOLBOX_EXEC_LOG_LEVEL_CMD-DEBUG}
+
+        if [ -f "$src" ]; then
+          mkdir -p $(dirname "${dest}")
+          toolbox_run "Hook :: ${1} :: ${2} :: Remove the destination file(s)" \
+            rm -f "${dest}"
+              toolbox_run "Hook :: ${1} :: ${2} :: Copy the file(s) to the destination" \
+            cp "${src}" "${dest}"
+
+          if [ ! "${mode}" = "" ]; then
+            toolbox_run "Hook :: ${1} :: ${2} :: Set a mode for the file(s)" \
+              chmod -R "${mode}" "${dest}"
+          fi
+
+          if [ ! -z "${user}" ] && [ ! -z "${group}" ]; then
+            if [ -f "${dest}" ]; then
+              toolbox_run "Hook :: ${1} :: ${2} :: Chown the file(s)" \
+                chown -R "${user}":"${group}" "${dest}"
+            fi
+          fi
+        fi
+      )
+    done
+  fi;
+done
+
+
