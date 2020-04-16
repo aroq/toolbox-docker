@@ -1,3 +1,6 @@
+Version 0.1.20:
+ - Refactor hooks code
+
 Version 0.1.19:
  - Set default exec method to toolbox_run instead of toolbox_exec
 
