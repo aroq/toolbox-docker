@@ -1,3 +1,6 @@
+Version 0.1.21:
+ - Fix files hook to support files & dirs
+
 Version 0.1.20:
  - Refactor hooks code
 
