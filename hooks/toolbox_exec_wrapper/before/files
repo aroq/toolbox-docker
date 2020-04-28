@@ -64,12 +64,12 @@ do
         TOOLBOX_EXEC_LOG_LEVEL_TITLE=${TOOLBOX_EXEC_LOG_LEVEL_TITLE-DEBUG}
         TOOLBOX_EXEC_LOG_LEVEL_CMD=${TOOLBOX_EXEC_LOG_LEVEL_CMD-DEBUG}
 
-        if [ -f "$src" ]; then
+        if [ -e "$src" ]; then
           mkdir -p $(dirname "${dest}")
           toolbox_run "Hook :: ${1} :: ${2} :: Remove the destination file(s)" \
             rm -f "${dest}"
               toolbox_run "Hook :: ${1} :: ${2} :: Copy the file(s) to the destination" \
-            cp "${src}" "${dest}"
+            cp -fR "${src}" "${dest}"
 
           if [ ! "${mode}" = "" ]; then
             toolbox_run "Hook :: ${1} :: ${2} :: Set a mode for the file(s)" \
@@ -87,5 +87,3 @@ do
     done
   fi;
 done
-
-
