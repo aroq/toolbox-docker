@@ -1,3 +1,6 @@
+Version 0.1.22:
+ - Update files hook & template, add GITHUB_ACTIONS context
+
 Version 0.1.21:
  - Fix files hook to support files & dirs
 
