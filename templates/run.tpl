@@ -29,7 +29,7 @@ export TOOLBOX_DOCKER_WORKING_DIR={{ .task.working_dir}}
 
 {{ if has .task "entrypoint_override" -}}
 {{ if eq .task.entrypoint_override true -}}
-export TOOLBOX_DOCKER_ENTRYPOINT=${TOOLBOX_DOCKER_ENTRYPOINT:-$(basename "${TOOLBOX_TOOL}")}
+export TOOLBOX_DOCKER_ENTRYPOINT=${TOOLBOX_DOCKER_ENTRYPOINT:-${TOOLBOX_TOOL}}
 {{ end -}}
 {{ end -}}
 

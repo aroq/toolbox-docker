@@ -73,15 +73,16 @@ do
 
           if [ ! "${mode}" = "" ]; then
             toolbox_run "Hook :: ${1} :: ${2} :: Set a mode for the file(s)" \
-              chmod -R "${mode}" "${dest}"
+              ${TOOLBOX_SUDO_PREFIX} chmod -R "${mode}" "${dest}"
           fi
 
           if [ ! -z "${user}" ] && [ ! -z "${group}" ]; then
             if [ -f "${dest}" ]; then
               toolbox_run "Hook :: ${1} :: ${2} :: Chown the file(s)" \
-                chown -R "${user}":"${group}" "${dest}"
+                ${TOOLBOX_SUDO_PREFIX} chown -R "${user}":"${group}" "${dest}"
             fi
           fi
+
         fi
       )
     done
