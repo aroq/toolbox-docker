@@ -1,3 +1,6 @@
+Version 0.1.23:
+ - Allow to mount files
+
 Version 0.1.22:
  - Update files hook & template, add GITHUB_ACTIONS context
 
