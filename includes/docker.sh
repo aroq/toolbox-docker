@@ -83,7 +83,7 @@ function toolbox_docker_run() {
   if [[ ! -z "${TOOLBOX_DOCKER_MOUNTS}" ]]; then
     for i in ${TOOLBOX_DOCKER_MOUNTS//,/ }
     do
-      if [ -d "${TOOLBOX_DOCKER_CURRENT_DIR}/toolbox/.tmp/mounts${i}" ]; then
+      if [ -e "${TOOLBOX_DOCKER_CURRENT_DIR}/toolbox/.tmp/mounts${i}" ]; then
         _run_cmd+=(-v ${TOOLBOX_DOCKER_CURRENT_DIR}/toolbox/.tmp/mounts${i}:${i}${TOOLBOX_DOCKER_MOUNT_OPTIONS})
       fi
     done
